@@ -1,5 +1,11 @@
 import torch
 import torch.nn as nn
+import torchvision
+import torchvision.transforms as transforms
+
+
+import torch
+import torch.nn as nn
 import torch.nn.functional as F
 
 class EfficientAttention(nn.Module):
@@ -81,7 +87,6 @@ class AttnRNNCell(nn.Module):
         # 注意力计算
         attn_out = self.attn(query=h_exp, context=context)
         attn_out = attn_out.squeeze(1)  # [batch, hidden]
-        attn_out = F.gelu(attn_out)  # 添加 GELU 激活
 
         # 门控融合
         gate_input = torch.cat([h_prev, attn_out], dim=-1)
@@ -129,3 +134,55 @@ class AttnRNN(nn.Module):
             output = output.permute(1, 0, 2)
 
         return output, h
+
+# 定义数据预处理
+transform = transforms.Compose([
+    transforms.ToTensor(),
+    transforms.Normalize((0.1307,), (0.3081,))
+])
+
+# 加载数据集
+train_dataset = torchvision.datasets.MNIST(root='./data', train=True,
+                                           transform=transform, download=True)
+test_dataset = torchvision.datasets.MNIST(root='./data', train=False,
+                                          transform=transform)
+
+# 创建数据加载器
+train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=64, shuffle=True)
+test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=64, shuffle=False)
+
+# 初始化模型
+input_size = 28
+hidden_size = 128
+model = AttnRNN(input_size, hidden_size, batch_first=True)
+
+# 定义损失函数和优化器
+criterion = nn.CrossEntropyLoss()
+optimizer = torch.optim.Adam(model.parameters())
+
+# 训练模型
+for epoch in range(10):
+    model.train()
+    for images, labels in train_loader:
+        images = images.squeeze(1)
+        optimizer.zero_grad()
+        output, _ = model(images)
+        predictions = output[:, -1, :]
+        loss = criterion(predictions, labels)
+        loss.backward()
+        optimizer.step()
+
+# 评估模型
+model.eval()
+correct = 0
+total = 0
+with torch.no_grad():
+    for images, labels in test_loader:
+        images = images.squeeze(1)
+        output, _ = model(images)
+        predictions = output[:, -1, :]
+        _, predicted = torch.max(predictions.data, 1)
+        total += labels.size(0)
+        correct += (predicted == labels).sum().item()
+
+print(f'Accuracy: {100 * correct / total}%')

@@ -81,6 +81,7 @@ class AttnRNNCell(nn.Module):
         # 注意力计算
         attn_out = self.attn(query=h_exp, context=context)
         attn_out = attn_out.squeeze(1)  # [batch, hidden]
+        attn_out = F.gelu(attn_out)  # 添加 GELU 激活
 
         # 门控融合
         gate_input = torch.cat([h_prev, attn_out], dim=-1)
