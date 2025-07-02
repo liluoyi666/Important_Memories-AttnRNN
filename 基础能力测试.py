@@ -309,7 +309,7 @@ def generate_adding_data(batch_size, seq_length):
 def generate_copy_data(batch_size, seq_length, num_classes=8):
     """
     生成Copy Memory Task数据:
-    - 输入序列: [data] + [delimiter] + [silence]
+    - 输入序列: [test_results] + [delimiter] + [silence]
     - 目标: 复制数据段内容到输出序列的相应位置
     """
     data_length = seq_length // 3

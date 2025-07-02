@@ -9,10 +9,12 @@ def count_parameters(model):
 
 
 # 设置统一的输入和隐藏层尺寸
-input_size = 64
+input_size = 2
 hidden_size = 128
 batch_size = 32
-seq_len = 10
+seq_len = 200
+
+transformer_num_layers=2
 
 # 创建比较的模型实例
 models = {
@@ -20,6 +22,10 @@ models = {
     "LSTM": nn.LSTM(input_size, hidden_size, batch_first=True),
     "GRU": nn.GRU(input_size, hidden_size, batch_first=True),
     "AttnRNN": AttnRNN(input_size, hidden_size, batch_first=True)
+    # ,
+    # "transformer": nn.TransformerEncoder(
+    #     nn.TransformerEncoderLayer(hidden_size, 4),
+    #     transformer_num_layers)
 }
 
 # 准备测试输入数据

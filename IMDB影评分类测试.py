@@ -4,11 +4,13 @@ import torch.optim as optim
 from torch.utils.data import Dataset, DataLoader
 import pandas as pd
 import numpy as np
-import random  # 新增random模块
+import random
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
 import torch.nn.functional as F
 import math
+import matplotlib.pyplot as plt  # 新增matplotlib
+import os  # 新增os模块用于创建目录
 
 
 # 设置全局随机种子
@@ -272,9 +274,17 @@ class TransformerModel(nn.Module):
         return output
 
 
-# 训练与评估函数
-def train_and_evaluate(model, train_loader, test_loader, criterion, optimizer, device, epochs=10):
+# 训练与评估函数（修改为记录训练损失和测试准确率）
+def train_and_evaluate(model, train_loader, test_loader, criterion, optimizer, device, epochs=10, model_name="model"):
     model.to(device)
+
+    # 创建目录保存图表
+    os.makedirs("training_plots", exist_ok=True)
+
+    # 记录训练过程
+    train_losses = []
+    test_accuracies = []
+
     for epoch in range(epochs):
         model.train()
         total_loss = 0
@@ -287,21 +297,52 @@ def train_and_evaluate(model, train_loader, test_loader, criterion, optimizer, d
             optimizer.step()
             total_loss += loss.item()
 
-        print(f'Epoch {epoch + 1}/{epochs}, Loss: {total_loss / len(train_loader):.4f}')
+        avg_loss = total_loss / len(train_loader)
+        train_losses.append(avg_loss)
 
-    model.eval()
-    all_preds = []
-    all_labels = []
-    with torch.no_grad():
-        for inputs, labels in test_loader:
-            inputs, labels = inputs.to(device), labels.to(device)
-            outputs = model(inputs)
-            preds = torch.argmax(outputs, dim=1)
-            all_preds.extend(preds.cpu().numpy())
-            all_labels.extend(labels.cpu().numpy())
+        # 评估测试集
+        model.eval()
+        all_preds = []
+        all_labels = []
+        with torch.no_grad():
+            for inputs, labels in test_loader:
+                inputs, labels = inputs.to(device), labels.to(device)
+                outputs = model(inputs)
+                preds = torch.argmax(outputs, dim=1)
+                all_preds.extend(preds.cpu().numpy())
+                all_labels.extend(labels.cpu().numpy())
 
-    acc = accuracy_score(all_labels, all_preds)
-    return acc
+        acc = accuracy_score(all_labels, all_preds)
+        test_accuracies.append(acc)
+
+        print(f'Epoch {epoch + 1}/{epochs}, Loss: {avg_loss:.4f}, Test Acc: {acc:.4f}')
+
+    # 绘制训练损失曲线
+    plt.figure(figsize=(12, 5))
+    plt.subplot(1, 2, 1)
+    plt.plot(range(1, epochs + 1), train_losses, 'b-o', label='Training Loss')
+    plt.title(f'{model_name} Training Loss')
+    plt.xlabel('Epochs')
+    plt.ylabel('Loss')
+    plt.legend()
+    plt.grid(True)
+
+    # 绘制测试准确率曲线
+    plt.subplot(1, 2, 2)
+    plt.plot(range(1, epochs + 1), test_accuracies, 'r-o', label='Test Accuracy')
+    plt.title(f'{model_name} Test Accuracy')
+    plt.xlabel('Epochs')
+    plt.ylabel('Accuracy')
+    plt.ylim(0, 1.0)  # 准确率范围0-1
+    plt.legend()
+    plt.grid(True)
+
+    # 保存图表
+    plt.tight_layout()
+    plt.savefig(f'training_plots/{model_name}_training_plot.png')
+    plt.close()
+
+    return test_accuracies[-1]  # 返回最终测试准确率
 
 
 def main():
@@ -338,7 +379,7 @@ def main():
 
     # 定义模型
     models = {
-        'AttnRNN': CustomAttnRNN(input_size, hidden_size, output_size),  # 新增自制模型
+        'AttnRNN': CustomAttnRNN(input_size, hidden_size, output_size),
         'VanillaRNN': VanillaRNN(input_size, hidden_size, output_size),
         'LSTM': LSTM(input_size, hidden_size, output_size),
         'GRU': GRU(input_size, hidden_size, output_size),
@@ -347,11 +388,18 @@ def main():
 
     # 训练和评估模型
     criterion = nn.CrossEntropyLoss()
+    results = {}
     for name, model in models.items():
         optimizer = optim.Adam(model.parameters(), lr=0.001)
         print(f'Training {name}...')
-        acc = train_and_evaluate(model, train_loader, test_loader, criterion, optimizer, device)
-        print(f'{name} Test Accuracy: {acc:.4f}')
+        acc = train_and_evaluate(model, train_loader, test_loader, criterion, optimizer, device, model_name=name)
+        results[name] = acc
+        print(f'{name} Final Test Accuracy: {acc:.4f}')
+
+    # 打印最终结果比较
+    print("\nModel Comparison:")
+    for name, acc in results.items():
+        print(f"{name}: {acc:.4f}")
 
 
 if __name__ == '__main__':
