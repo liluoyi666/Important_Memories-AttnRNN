@@ -9,7 +9,7 @@ def count_parameters(model):
 
 
 # 设置统一的输入和隐藏层尺寸
-input_size = 2
+input_size = 64
 hidden_size = 128
 batch_size = 32
 seq_len = 200

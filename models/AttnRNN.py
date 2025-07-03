@@ -71,24 +71,31 @@ class AttnRNNCell(nn.Module):
         self.layer_norm = nn.LayerNorm(hidden_size)
 
     def forward(self, h_prev, x):
+        # 形状匹配
         x_proj = self.proj_layer(x)
-
-        # 准备注意力输入
         h_exp = h_prev.unsqueeze(1)
         x_exp = x_proj.unsqueeze(1)
+        """[batch_size, 1, hidden_size]"""
+
+        # KV搭建
         context = torch.cat([h_exp, x_exp, h_exp + x_exp, h_exp * x_exp], dim=1)
 
-        # 注意力计算
+        # 注意力
         attn_out = self.attn(query=h_exp, context=context)
-        attn_out = attn_out.squeeze(1)  # [batch, hidden]
+        attn_out = attn_out.squeeze(1)
         attn_out = F.gelu(attn_out)  # 添加 GELU 激活
+        """[batch_size, hidden_size]"""
 
-        # 门控融合
+        # 连接矩阵
         gate_input = torch.cat([h_prev, attn_out], dim=-1)
-        update_gate = self.update_gate(gate_input)
+        """[batch_size, 2*hidden_size]"""
 
-        # 门控更新
-        h_candidate = self.layer_norm(attn_out + h_prev)  # 原残差路径
+        # 计算更新比例
+        update_gate = self.update_gate(gate_input)
+        """[batch_size, hidden_size]"""
+
+        # 残差归一化并更新状态
+        h_candidate = self.layer_norm(attn_out + h_prev)
         h_new = update_gate * h_candidate + (1 - update_gate) * h_prev
 
         return h_new
@@ -99,12 +106,14 @@ class AttnRNN(nn.Module):
         self.hidden_size = hidden_size
         self.batch_first = batch_first
         self.init_value = init_value
+
         self.cell = AttnRNNCell(input_size, hidden_size)
 
     def forward(self, x, h0=None):
         if not self.batch_first:
             x = x.permute(1, 0, 2)
 
+        """[batch_size,seq_len,input_size]"""
         batch_size, seq_len, _ = x.shape
 
         # 初始化隐藏状态
@@ -118,13 +127,14 @@ class AttnRNN(nn.Module):
                 dtype=x.dtype
             )
 
+        # 循环
         outputs = []
         for t in range(seq_len):
             h = self.cell(h, x[:, t, :])
             outputs.append(h)
 
+        # 末尾处理
         output = torch.stack(outputs, dim=1)
-
         if not self.batch_first:
             output = output.permute(1, 0, 2)
 
