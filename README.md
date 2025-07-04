@@ -36,14 +36,17 @@ class AttnRNNCell(nn.Module):
 ### 设计理念
 1. **注意力竞争机制**  
    让历史隐藏状态$h_{t-1}$和新输入$x_t$直接竞争注意力分数：
+
    $$ \text{Context} = [h_{t-1}, x_t, h_{t-1}+x_t, h_{t-1}\times x_t] $$
    
 2. **残差主导原则**  
    原始隐藏状态始终保留：
+
    $$ h_{\text{candidate}} = \text{LayerNorm}(\text{AttnOut} + h_{t-1}) $$
 
 3. **精简门控设计**  
    单门控机制平衡新旧信息：
+
    $$ h_t = \sigma(W_g[h_{t-1}; \text{AttnOut}]) \cdot h_{\text{candidate}} + (1-\sigma)\cdot h_{t-1} $$
 
 ## 模型分析
@@ -98,11 +101,11 @@ class AttnRNNCell(nn.Module):
 
 ### 实验3: IMDB情感分类
 
-<img src="test_results/GRU_training_plot.png" alt="" width="500" height="300" align="right">
+<img src="test_results/GRU_training_plot.png" alt="" width="500" height="200" align="left">
 
-<img src="test_results/AttnRNN_training_plot.png" alt="" width="500" height="300" align="right">
+<img src="test_results/AttnRNN_training_plot.png" alt="" width="500" height="200" align="left">
 
-<img src="test_results/Transformer_training_plot.png" alt="" width="500" height="300" align="right">
+<img src="test_results/Transformer_training_plot.png" alt="" width="500" height="200" align="left">
 
 | 模型          | 参数量   | 最高准确率 | 最终准确率 |
 |---------------|----------|------------|------------|
