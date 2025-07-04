@@ -35,37 +35,43 @@ class AttnRNNCell(nn.Module):
 
 ### 设计理念
 1. **注意力竞争机制**  
-   让历史隐藏状态 $ h_{t-1}$ 和新输入 $ x_t$ 直接竞争注意力分数：
+   让历史隐藏状态 `h_{t-1}` 和新输入 `x_t` 直接竞争注意力分数：
 
-   $$ \text{Context} = [h_{t-1}, x_t, h_{t-1}+x_t, h_{t-1}\times x_t] $$
+   ```
+   Context = [h_{t-1}, x_t, h_{t-1}+x_t, h_{t-1}×x_t]
+   ```
    
 2. **残差主导原则**  
    原始隐藏状态始终保留：
 
-   $$ h_{\text{candidate}} = \text{LayerNorm}(\text{AttnOut} + h_{t-1}) $$
+   ```
+   h_candidate = LayerNorm(AttnOut + h_{t-1})
+   ```
 
 3. **精简门控设计**  
    单门控机制平衡新旧信息：
 
-   $$ h_t = \sigma(W_g[h_{t-1}; \text{AttnOut}]) \cdot h_{\text{candidate}} + (1-\sigma)\cdot h_{t-1} $$
+   ```
+   h_t = σ(W_g[h_{t-1}; AttnOut]) · h_candidate + (1-σ)·h_{t-1}
+   ```
 
 ## 模型分析
 
 ### 参数量对比
 | 模型       | 参数量公式 (d≠h)         | 参数量示例 (d=64, h=128) |
 |------------|--------------------------|--------------------------|
-| RNN        | $dh + h^2 + 2h$         | 24,832                  |
-| LSTM       | $4(dh + h^2 + h)$       | 99,328                  |
-| GRU        | $3(dh + h^2 + h)$       | 74,496                  |
-| **AttnRNN**| $dh + 4h^2 + 6h$        | **66,432**              |
+| RNN        | `dh + h^2 + 2h`         | 24,832                  |
+| LSTM       | `4(dh + h^2 + h)`       | 99,328                  |
+| GRU        | `3(dh + h^2 + h)`       | 74,496                  |
+| **AttnRNN**| `dh + 4h^2 + 6h`        | **66,432**              |
 
 ### 时间复杂度
 | 模型       | 序列时间复杂度         | 主导项系数 |
 |------------|------------------------|------------|
-| RNN        | $O(TB(dh + h^2))$      | 1          |
-| LSTM       | $O(4TB(dh + h^2))$     | 4          |
-| GRU        | $O(3TB(dh + h^2))$     | 3          |
-| **AttnRNN**| $O(TB(3h^2 + dh))$     | **3**      |
+| RNN        | `O(TB(dh + h^2))`      | 1          |
+| LSTM       | `O(4TB(dh + h^2))`     | 4          |
+| GRU        | `O(3TB(dh + h^2))`     | 3          |
+| **AttnRNN**| `O(TB(3h^2 + dh))`     | **3**      |
 
 > **注意**：尽管理论复杂度与GRU相当，当前实现因张量操作开销实际耗时约为GRU的2.5-3倍
 
@@ -101,11 +107,11 @@ class AttnRNNCell(nn.Module):
 
 ### 实验3: IMDB情感分类
 
-<img src="test_results/GRU_training_plot.png" alt="" width="500" height="200" align="left">
+<img src="test_results/GRU_training_plot.png" alt="GRU训练曲线" width="500" height="200" align="left">
+<img src="test_results/AttnRNN_training_plot.png" alt="AttnRNN训练曲线" width="500" height="200" align="left">
+<img src="test_results/Transformer_training_plot.png" alt="Transformer训练曲线" width="500" height="200" align="left">
 
-<img src="test_results/AttnRNN_training_plot.png" alt="" width="500" height="200" align="left">
-
-<img src="test_results/Transformer_training_plot.png" alt="" width="500" height="200" align="left">
+<br clear="both">
 
 | 模型          | 参数量   | 最高准确率 | 最终准确率 |
 |---------------|----------|------------|------------|
@@ -118,7 +124,7 @@ class AttnRNNCell(nn.Module):
 > AttnRNN在第三轮即达到79.40%准确率，显著快于其他模型
 
 ### 实验4: 梯度消失测试（梯度范数）
-<img src="test_results/rnn_gradient_comparison.png" alt="" width="500" height="300" align="center">
+<img src="test_results/rnn_gradient_comparison.png" alt="梯度范数比较" width="500" height="300" align="center">
 
 | 序列长度 | AttnRNN      | RNN         | LSTM        | GRU         |
 |----------|--------------|-------------|-------------|-------------|
@@ -128,11 +134,11 @@ class AttnRNNCell(nn.Module):
 | 512      | 2.2813e-06   | 0.0         | 0.0         | 0.0         |
 | 1024     | **5.1038e-10**| 0.0         | 0.0         | 0.0         |
 
-> AttnRNN在1024长度序列仍保持有效梯度，比LSTM强约$10^{18}$倍
+> AttnRNN在1024长度序列仍保持有效梯度，比LSTM强约10¹⁸倍
 
 ## 性能优势分析
 1. **长序列处理**  
-   梯度范数衰减符合：$ \log(\|\nabla\|) \propto -kL$ ($ k$为常数，$ L$为序列长度)
+   梯度范数衰减符合：`log(‖∇‖) ∝ -kL` (k为常数，L为序列长度)
    
 2. **信息选择性**  
    注意力机制自动过滤噪声输入，实验1中序列越长表现越好
@@ -145,7 +151,7 @@ class AttnRNNCell(nn.Module):
    CUDA底层实现，消除Python循环瓶颈
 
 2. **多维隐藏状态**  
-   扩展隐藏状态维度：$ h_t \in \mathbb{R}^{h \times d_h}$ (当前为$ \mathbb{R}^h$)
+   扩展隐藏状态维度：`h_t ∈ ℝ^{h×d_h}` (当前为`ℝ^h`)
 
 3. **混合架构**  
    - 作为Transformer-XL的记忆模块  
@@ -153,7 +159,7 @@ class AttnRNNCell(nn.Module):
 
 ## 结论
 AttnRNN通过**注意力竞争机制**和**精简门控设计**，在多个维度超越传统RNN模型：
-1. 长序列梯度保持能力提升$10^{18}$倍级
+1. 长序列梯度保持能力提升10¹⁸倍级
 2. 实验任务性能全面优于RNN/GRU/LSTM
 3. 参数量与GRU相当，远低于LSTM
 4. 收敛速度显著加快
