@@ -63,7 +63,7 @@ class AttnRNNCell(nn.Module):
 | RNN        | `dh + h^2 + 2h`         | 24,832                  |
 | LSTM       | `4(dh + h^2 + h)`       | 99,328                  |
 | GRU        | `3(dh + h^2 + h)`       | 74,496                  |
-| **AttnRNN**| `dh + 4h^2 + 6h`        | **66,432**              |
+| **AttnRNN**| `dh + 4h^2 + 6h`        | **74,496**              |
 
 ### 时间复杂度
 | 模型       | 序列时间复杂度         | 主导项系数 |
