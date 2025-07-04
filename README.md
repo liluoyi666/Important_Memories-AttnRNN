@@ -86,6 +86,8 @@ class AttnRNNCell(nn.Module):
 ## 实验结果
 
 ### 实验1: Adding Problem
+加法问题：模型需要记住序列中两个特定位置的值，并在序列结束时输出它们的和。
+
 | 序列长度 | RNN     | GRU     | LSTM    | **AttnRNN** |
 |----------|---------|---------|---------|-------------|
 | 50       | 0.3411  | 0.0111  | 0.0666  | **0.0069**  |
@@ -96,6 +98,8 @@ class AttnRNNCell(nn.Module):
 *平均绝对误差(MAE)，越低越好*
 
 ### 实验2: Copy Memory Task
+复制记忆任务：序列前三位为有意义值，其余皆为无意义值，模型需要在结束时输出序列前三位的值。
+
 | 序列长度 | RNN     | GRU     | LSTM    | **AttnRNN** |
 |----------|---------|---------|---------|-------------|
 | 30       | 0.1380  | 0.6620  | 0.5480  | **0.8140**  |
@@ -107,21 +111,21 @@ class AttnRNNCell(nn.Module):
 
 ### 实验3: IMDB情感分类
 
-<img src="test_results/GRU_training_plot.png" alt="GRU训练曲线" width="500" height="200" align="left">
-<img src="test_results/AttnRNN_training_plot.png" alt="AttnRNN训练曲线" width="500" height="200" align="left">
-<img src="test_results/Transformer_training_plot.png" alt="Transformer训练曲线" width="500" height="200" align="left">
+<img src="training_plots/combined_test_accuracy.png" alt="Acc" width="500" height="300" align="left">
+<img src="training_plots/combined_training_loss.png" alt="loss" width="500" height="300" align="left">
+
 
 <br clear="both">
 
-| 模型          | 参数量   | 最高准确率 | 最终准确率 |
+| 模型          | 参数量   | 最高准确率      | 最终准确率      |
 |---------------|----------|------------|------------|
-| RNN           | 33,024   | 50.72%     | 50.72%     |
-| GRU           | 99,072   | 78.40%     | 77.03%     |
-| LSTM          | 132,096  | 77.44%     | 77.44%     |
-| **AttnRNN**   | **66,176**| **80.16%** | **80.16%** |
-| Transformer   | 1,186,048| 81.44%     | 79.84%     |
+| RNN           | 33,024   | 51.89%     | 51.89%     |
+| GRU           | 99,072   | 77.24%     | 73.68%     |
+| LSTM          | 132,096  | 75.32%     | 74.02%     |
+| **AttnRNN**   | **66,176**| **80.07%** | **79.57%** |
+| Transformer   | 1,186,048| 81.82%     | 80.17%     |
 
-> AttnRNN在第三轮即达到79.40%准确率，显著快于其他模型
+> AttnRNN在第2轮即达到77.89%准确率。尽管最终结果仍不及transformer，但极少的参数与极快的收敛速度仍彰显其优势。
 
 ### 实验4: 梯度消失测试（梯度范数）
 <img src="test_results/rnn_gradient_comparison.png" alt="梯度范数比较" width="500" height="300" align="center">

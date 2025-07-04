@@ -9,8 +9,8 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
 import torch.nn.functional as F
 import math
-import matplotlib.pyplot as plt  # 新增matplotlib
-import os  # 新增os模块用于创建目录
+import matplotlib.pyplot as plt
+import os
 
 
 # 设置全局随机种子
@@ -274,12 +274,9 @@ class TransformerModel(nn.Module):
         return output
 
 
-# 训练与评估函数（修改为记录训练损失和测试准确率）
+# 训练与评估函数（修改为返回训练损失和测试准确率列表）
 def train_and_evaluate(model, train_loader, test_loader, criterion, optimizer, device, epochs=10, model_name="model"):
     model.to(device)
-
-    # 创建目录保存图表
-    os.makedirs("training_plots", exist_ok=True)
 
     # 记录训练过程
     train_losses = []
@@ -317,32 +314,7 @@ def train_and_evaluate(model, train_loader, test_loader, criterion, optimizer, d
 
         print(f'Epoch {epoch + 1}/{epochs}, Loss: {avg_loss:.4f}, Test Acc: {acc:.4f}')
 
-    # 绘制训练损失曲线
-    plt.figure(figsize=(12, 5))
-    plt.subplot(1, 2, 1)
-    plt.plot(range(1, epochs + 1), train_losses, 'b-o', label='Training Loss')
-    plt.title(f'{model_name} Training Loss')
-    plt.xlabel('Epochs')
-    plt.ylabel('Loss')
-    plt.legend()
-    plt.grid(True)
-
-    # 绘制测试准确率曲线
-    plt.subplot(1, 2, 2)
-    plt.plot(range(1, epochs + 1), test_accuracies, 'r-o', label='Test Accuracy')
-    plt.title(f'{model_name} Test Accuracy')
-    plt.xlabel('Epochs')
-    plt.ylabel('Accuracy')
-    plt.ylim(0, 1.0)  # 准确率范围0-1
-    plt.legend()
-    plt.grid(True)
-
-    # 保存图表
-    plt.tight_layout()
-    plt.savefig(f'training_plots/{model_name}_training_plot.png')
-    plt.close()
-
-    return test_accuracies[-1]  # 返回最终测试准确率
+    return train_losses, test_accuracies
 
 
 def main():
@@ -350,8 +322,8 @@ def main():
     set_seed(42)
 
     # 加载数据
-    train_data = pd.read_csv('/kaggle/input/imdb-emotion-analysis-dataset/train.csv')
-    test_data = pd.read_csv('/kaggle/input/imdb-emotion-analysis-dataset/test.csv')
+    train_data = pd.read_csv(TRAIN_DATA)
+    test_data = pd.read_csv(TEST_DATA)
 
     label_mapping = {'neg': 0, 'pos': 1}  # 假设 'neg' 表示负面，'pos' 表示正面
     train_data['label'] = train_data['label'].map(label_mapping)
@@ -369,6 +341,7 @@ def main():
     output_size = 2  # 二分类
     max_length = 200
     batch_size = 128
+    epochs = 10
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     # 创建数据集和数据加载器
@@ -386,15 +359,54 @@ def main():
         'Transformer': TransformerModel(input_size, hidden_size, output_size)
     }
 
-    # 训练和评估模型
+    # 训练和评估模型，收集训练过程数据
     criterion = nn.CrossEntropyLoss()
     results = {}
+    train_losses_dict = {}
+    test_accuracies_dict = {}
+
     for name, model in models.items():
         optimizer = optim.Adam(model.parameters(), lr=0.001)
         print(f'Training {name}...')
-        acc = train_and_evaluate(model, train_loader, test_loader, criterion, optimizer, device, model_name=name)
-        results[name] = acc
-        print(f'{name} Final Test Accuracy: {acc:.4f}')
+        train_losses, test_accuracies = train_and_evaluate(
+            model, train_loader, test_loader, criterion, optimizer, device, epochs, name)
+
+        train_losses_dict[name] = train_losses
+        test_accuracies_dict[name] = test_accuracies
+        results[name] = test_accuracies[-1]
+        print(f'{name} Final Test Accuracy: {results[name]:.4f}')
+
+    # 创建目录保存图表
+    os.makedirs("training_plots", exist_ok=True)
+
+    # 绘制合并的训练损失曲线
+    plt.figure(figsize=(10, 6))
+    for name, losses in train_losses_dict.items():
+        plt.plot(range(1, epochs + 1), losses, label=name)
+
+    plt.title('Training Loss Comparison')
+    plt.xlabel('Epochs')
+    plt.ylabel('Loss')
+    plt.legend()
+    plt.grid(True)
+    plt.tight_layout()
+    plt.savefig('training_plots/combined_training_loss.png')
+    plt.close()
+
+    # 绘制合并的测试准确率曲线
+    plt.figure(figsize=(10, 6))
+    for name, accs in test_accuracies_dict.items():
+        plt.plot(range(1, epochs + 1), accs, label=name)
+
+    plt.title('Test Accuracy Comparison')
+    plt.xlabel('Epochs')
+    plt.ylabel('Accuracy')
+    plt.ylim(0, 1.0)
+    plt.legend()
+    plt.grid(True)
+    plt.tight_layout()
+    plt.savefig('training_plots/combined_test_accuracy.png')
+    plt.close()
 
     # 打印最终结果比较
     print("\nModel Comparison:")
@@ -403,4 +415,10 @@ def main():
 
 
 if __name__ == '__main__':
+    print("请在[https://www.kaggle.com/datasets/hengjianshe/imdb-emotion-analysis-dataset]下载数据集并解压\n")
+
+    TRAIN_DATA="archive/train.csv"
+    TEST_DATA = "archive/test.csv"
+
+
     main()
