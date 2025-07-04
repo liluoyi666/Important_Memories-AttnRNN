@@ -35,7 +35,7 @@ class AttnRNNCell(nn.Module):
 
 ### 设计理念
 1. **注意力竞争机制**  
-   让历史隐藏状态$h_{t-1}$和新输入$x_t$直接竞争注意力分数：
+   让历史隐藏状态 $ h_{t-1}$ 和新输入 $ x_t$ 直接竞争注意力分数：
 
    $$ \text{Context} = [h_{t-1}, x_t, h_{t-1}+x_t, h_{t-1}\times x_t] $$
    
@@ -132,7 +132,7 @@ class AttnRNNCell(nn.Module):
 
 ## 性能优势分析
 1. **长序列处理**  
-   梯度范数衰减符合：$\log(\|\nabla\|) \propto -kL$ ($k$为常数，$L$为序列长度)
+   梯度范数衰减符合：$ \log(\|\nabla\|) \propto -kL$ ($ k$为常数，$ L$为序列长度)
    
 2. **信息选择性**  
    注意力机制自动过滤噪声输入，实验1中序列越长表现越好
@@ -145,7 +145,7 @@ class AttnRNNCell(nn.Module):
    CUDA底层实现，消除Python循环瓶颈
 
 2. **多维隐藏状态**  
-   扩展隐藏状态维度：$h_t \in \mathbb{R}^{h \times d_h}$ (当前为$\mathbb{R}^h$)
+   扩展隐藏状态维度：$ h_t \in \mathbb{R}^{h \times d_h}$ (当前为$ \mathbb{R}^h$)
 
 3. **混合架构**  
    - 作为Transformer-XL的记忆模块  
