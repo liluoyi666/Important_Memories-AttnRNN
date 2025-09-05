@@ -67,8 +67,7 @@ class AttnRNNCell(nn.Module):
             nn.Sigmoid()
         )
 
-        # 层归一化
-        self.layer_norm = nn.LayerNorm(hidden_size)
+
 
     def forward(self, h_prev, x):
         # 形状匹配
@@ -78,7 +77,7 @@ class AttnRNNCell(nn.Module):
         """[batch_size, 1, hidden_size]"""
 
         # KV搭建
-        context = torch.cat([h_exp, x_exp, h_exp + x_exp, h_exp * x_exp], dim=1)
+        context = torch.cat([h_exp, x_exp], dim=1)
 
         # 注意力
         attn_out = self.attn(query=h_exp, context=context)
@@ -94,9 +93,8 @@ class AttnRNNCell(nn.Module):
         update_gate = self.update_gate(gate_input)
         """[batch_size, hidden_size]"""
 
-        # 残差归一化并更新状态
-        h_candidate = self.layer_norm(attn_out + h_prev)
-        h_new = update_gate * h_candidate + (1 - update_gate) * h_prev
+
+        h_new = update_gate * attn_out + (1 - update_gate) * h_prev
 
         return h_new
 

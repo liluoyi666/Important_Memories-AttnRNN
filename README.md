@@ -1,7 +1,7 @@
 # AttnRNN: 一种基于注意力机制的新型循环神经网络
 
 ## 概述
-AttnRNN是一种创新的循环神经网络架构，通过融合**注意力机制**和**门控机制**，解决了传统RNN在长序列处理中的梯度消失问题。该模型在多个基准测试中显著优于标准RNN、GRU和LSTM，尤其在长序列任务中展现出卓越性能。
+AttnRNN是一种创新的循环神经网络架构，通过融合**注意力机制**和**门控机制**，增强了模型在短序列中的性能。该模型在多个基准测试中显著优于标准RNN、GRU和LSTM。
 
 ## 模型结构
 
@@ -23,7 +23,7 @@ class EfficientAttention(nn.Module):
 class AttnRNNCell(nn.Module):
     def __init__(self, input_size, hidden_size):
         # 注意力上下文构建
-        context = torch.cat([h_exp, x_exp, h_exp+x_exp, h_exp*x_exp], dim=1)
+        context = torch.cat([h_exp, x_exp], dim=1)
         
         # 注意力计算
         attn_out = self.attn(query=h_exp, context=context)
@@ -38,17 +38,11 @@ class AttnRNNCell(nn.Module):
    让历史隐藏状态 `h_{t-1}` 和新输入 `x_t` 直接竞争注意力分数：
 
    ```
-   Context = [h_{t-1}, x_t, h_{t-1}+x_t, h_{t-1}×x_t]
-   ```
-   
-2. **残差主导原则**  
-   原始隐藏状态始终保留：
-
-   ```
-   h_candidate = LayerNorm(AttnOut + h_{t-1})
+   Context = [h_{t-1}, x_t]
    ```
 
-3. **精简门控设计**  
+
+2**精简门控设计**  
    单门控机制平衡新旧信息：
 
    ```
@@ -123,27 +117,13 @@ class AttnRNNCell(nn.Module):
 
 > AttnRNN在第三轮即达到79.40%准确率，显著快于其他模型
 
-### 实验4: 梯度消失测试（梯度范数）
-<img src="test_results/rnn_gradient_comparison.png" alt="梯度范数比较" width="500" height="300" align="center">
-
-| 序列长度 | AttnRNN      | RNN         | LSTM        | GRU         |
-|----------|--------------|-------------|-------------|-------------|
-| 64       | 1.6461e-02   | 0.0         | 8.3372e-07  | 4.4385e-09  |
-| 128      | 1.5219e-03   | 0.0         | 1.7509e-10  | 4.8556e-16  |
-| 256      | 2.8308e-04   | 0.0         | 7.7239e-18  | 0.0         |
-| 512      | 2.2813e-06   | 0.0         | 0.0         | 0.0         |
-| 1024     | **5.1038e-10**| 0.0         | 0.0         | 0.0         |
-
-> AttnRNN在1024长度序列仍保持有效梯度，比LSTM强约10¹⁸倍
 
 ## 性能优势分析
-1. **长序列处理**  
-   梯度范数衰减符合：`log(‖∇‖) ∝ -kL` (k为常数，L为序列长度)
    
-2. **信息选择性**  
+1**信息选择性**  
    注意力机制自动过滤噪声输入，实验1中序列越长表现越好
 
-3. **收敛速度**  
+2**收敛速度**  
    在简单任务中，5个epoch达到的loss低于其他模型30个epoch结果
 
 ## 未来方向
@@ -159,7 +139,6 @@ class AttnRNNCell(nn.Module):
 
 ## 结论
 AttnRNN通过**注意力竞争机制**和**精简门控设计**，在多个维度超越传统RNN模型：
-1. 长序列梯度保持能力提升10¹⁸倍级
 2. 实验任务性能全面优于RNN/GRU/LSTM
 3. 参数量与GRU相当，远低于LSTM
 4. 收敛速度显著加快
